@@ -1,0 +1,18 @@
+AllCops:
+  TargetRubyVersion: 3.2
+  SuggestExtensions: false
+Layout/LineLength:
+  Max: 120
+Metrics/AbcSize:
+  Max: 20
+Metrics/BlockLength:
+  IgnoredMethods: ['describe', 'context']
+Metrics/CyclomaticComplexity:
+  Max: 10
+Metrics/MethodLength:
+  Max: 20
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+  SupportedStyles:
+    - single_quotes
+    - double_quotes

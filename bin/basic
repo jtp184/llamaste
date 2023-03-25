@@ -1,0 +1,59 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'etc'
+require 'irb'
+require 'llamaste'
+
+start_time = Time.now
+
+File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
+
+input = <<~DOC
+  Transcript of a chat with a food critic
+
+  > What is the best pizza topping?
+DOC
+
+params = {
+  model: '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin',
+  parts: 1,
+  tokens: 16,
+  batch_size: 64,
+  top_k: 400,
+  temperature: 0.2,
+  repeat_penalty: 1.0
+}
+
+# input = 'Two yellow caterpillars ran backwards'
+# params = { model: '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0.bin', tokens: 16 }
+
+@model = Llamaste::Model.new(params)
+
+input_time = Time.now
+
+@model.load_model
+puts "Load model (#{Time.now - input_time})"
+puts @model.inspect
+puts
+@tokenize = @model.tokenize(input)
+puts "Tokenize #{@tokenize.inspect}"
+
+input_time = Time.now
+puts 'Processing Input'
+# @result = @model.call(@tokenize)
+puts
+@result = @model.call(@tokenize) { |output| print output }
+puts
+
+puts "Input Processed (#{(Time.now - input_time) / 60.0} min)"
+puts "Total: #{(Time.now - start_time) / 60.0} min"
+
+`rm tmp/basic.pid`
+
+puts "\a"
+# IRB.start
+puts
+# puts 'Output:'
+puts
+# puts @result
