@@ -12,7 +12,7 @@ RSpec.describe Llamaste::Model do
     )
   end
 
-  let(:model_path) { '/models/model.bin' }
+  let(:model_path) { '/models/model-b1.bin' }
   subject(:service) { described_class.new }
 
   before do
@@ -63,6 +63,21 @@ RSpec.describe Llamaste::Model do
   describe '#tokenize' do
     it 'returns a TokenEmbedding' do
       expect(service.tokenize('Some Text')).to be_a(Llamaste::TokenEmbedding)
+    end
+  end
+
+  describe '#quantize' do
+    let(:service) { described_class.new(model: model_path) }
+    let(:modified_path) { '/models/model-q4_0.bin' }
+
+    it 'quantizes the provided model' do
+      expect(llama).to receive(:quantize).with(
+        model_path,
+        modified_path,
+        2
+      )
+
+      service.quantize
     end
   end
 

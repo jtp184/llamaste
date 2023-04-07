@@ -56,6 +56,7 @@ Superclass:
 <li><a href="#attribute-i-model">model</a></li>
 <li><a href="#attribute-i-output">output</a></li>
 <li><a href="#attribute-i-params">params</a></li>
+<li><a href="#method-i-quantize">quantize</a></li>
 <li><a href="#method-i-tokenize">tokenize</a></li>
 </ol>
 <h3>Private Instance</h3>
@@ -132,7 +133,9 @@ Superclass:
     <span class="ruby-value">top_p:</span> <span class="ruby-value">0.95</span>,
     <span class="ruby-value">temperature:</span> <span class="ruby-value">0.8</span>,
     <span class="ruby-value">repeat_penalty:</span> <span class="ruby-value">1.1</span>,
-    <span class="ruby-value">batch_size:</span> <span class="ruby-value">8</span>
+    <span class="ruby-value">batch_size:</span> <span class="ruby-value">8</span>,
+    <span class="ruby-value">memory_lock:</span> <span class="ruby-keyword">false</span>,
+    <span class="ruby-value">memory_f16:</span> <span class="ruby-keyword">false</span>
   }
 <span class="ruby-keyword">end</span></pre>
 </div>
@@ -175,7 +178,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-call-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-call-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 61</span>
+<pre id='method-i-call-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 75</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">call</span>(<span class="ruby-identifier">input</span>, <span class="ruby-value">break_on:</span> <span class="ruby-keyword">nil</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
   <span class="ruby-ivar">@output</span> = <span class="ruby-keyword">case</span> <span class="ruby-identifier">input</span>
             <span class="ruby-keyword">when</span> <span class="ruby-constant">TokenEmbedding</span> <span class="ruby-keyword">then</span> <span class="ruby-identifier">handle_ary_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
@@ -200,7 +203,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-load_model-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-load_model-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 39</span>
+<pre id='method-i-load_model-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 41</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">load_model</span>(<span class="ruby-identifier">model_path</span> = <span class="ruby-keyword">nil</span>)
   <span class="ruby-keyword">if</span> <span class="ruby-identifier">model_path</span>
     <span class="ruby-ivar">@model</span> = <span class="ruby-identifier">model_path</span>
@@ -213,6 +216,33 @@ Superclass:
   <span class="ruby-keyword">end</span>
 
   <span class="ruby-identifier">model</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<div class='method public-instance' id='method-method-i-quantize'>
+<a name='method-i-quantize'></a>
+<div class='synopsis'>
+<span class='name'>quantize</span><span class='arguments'>(input_file: model, output_file: nil, quantize_type: :q4_0)</span>
+
+</div>
+<div class='description'>
+
+<p>Runs quantization on the <code>input_file</code> defaulting to the model, emitting it to <code>output_file</code> using the <code>quantize_type</code></p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-quantize-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-quantize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 62</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">quantize</span>(<span class="ruby-value">input_file:</span> <span class="ruby-identifier">model</span>, <span class="ruby-value">output_file:</span> <span class="ruby-keyword">nil</span>, <span class="ruby-value">quantize_type:</span> <span class="ruby-value">:q4_0</span>)
+  <span class="ruby-identifier">output_file</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">input_file</span>.<span class="ruby-identifier">gsub</span>(<span class="ruby-regexp">/-[^-]+(?=\.bin$)/</span>, <span class="ruby-node">&quot;-#{quantize_type}&quot;</span>)
+  <span class="ruby-identifier">itype</span> = <span class="ruby-keyword">case</span> <span class="ruby-identifier">quantize_type</span>
+          <span class="ruby-keyword">when</span> <span class="ruby-value">:q4_0</span> <span class="ruby-keyword">then</span> <span class="ruby-value">2</span>
+          <span class="ruby-keyword">when</span> <span class="ruby-value">:q4_1</span> <span class="ruby-keyword">then</span> <span class="ruby-value">3</span>
+          <span class="ruby-keyword">end</span>
+
+  <span class="ruby-identifier">llama</span>.<span class="ruby-identifier">quantize</span>(<span class="ruby-identifier">input_file</span>, <span class="ruby-identifier">output_file</span>, <span class="ruby-identifier">itype</span>)
 <span class="ruby-keyword">end</span></pre>
 </div>
 </div>
@@ -231,7 +261,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-tokenize-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-tokenize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 54</span>
+<pre id='method-i-tokenize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 56</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">tokenize</span>(<span class="ruby-identifier">input</span>)
   <span class="ruby-constant">TokenEmbedding</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">llama</span>.<span class="ruby-identifier">tokenize_text</span>(<span class="ruby-identifier">input</span>))
 <span class="ruby-keyword">end</span></pre>
@@ -253,7 +283,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-handle_ary_input-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-handle_ary_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 77</span>
+<pre id='method-i-handle_ary_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 91</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">handle_ary_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
   <span class="ruby-identifier">bos</span> = <span class="ruby-identifier">input</span>.<span class="ruby-identifier">to_ary</span>.<span class="ruby-identifier">dup</span>.<span class="ruby-identifier">unshift</span>(<span class="ruby-value">1</span>)
 
@@ -276,7 +306,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-handle_str_input-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-handle_str_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 72</span>
+<pre id='method-i-handle_str_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 86</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">handle_str_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
   <span class="ruby-identifier">llama</span>.<span class="ruby-identifier">process_text</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
 <span class="ruby-keyword">end</span></pre>
@@ -297,7 +327,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-llama-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-llama-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 84</span>
+<pre id='method-i-llama-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 98</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">llama</span>
   <span class="ruby-ivar">@llama</span> <span class="ruby-operator">||=</span> <span class="ruby-constant">Llama</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">params</span>.<span class="ruby-identifier">merge</span>(<span class="ruby-value">model:</span>))
 <span class="ruby-keyword">end</span></pre>

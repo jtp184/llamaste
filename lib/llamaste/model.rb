@@ -31,7 +31,9 @@ module Llamaste
         top_p: 0.95,
         temperature: 0.8,
         repeat_penalty: 1.1,
-        batch_size: 8
+        batch_size: 8,
+        memory_lock: false,
+        memory_f16: false
       }
     end
 
@@ -53,6 +55,18 @@ module Llamaste
     # Return a TokenEmbedding for +input+ string
     def tokenize(input)
       TokenEmbedding.new(input, llama.tokenize_text(input))
+    end
+
+    # Runs quantization on the +input_file+ defaulting to the model, emitting it to
+    # +output_file+ using the +quantize_type+
+    def quantize(input_file: model, output_file: nil, quantize_type: :q4_0)
+      output_file ||= input_file.gsub(/-[^-]+(?=\.bin$)/, "-#{quantize_type}")
+      itype = case quantize_type
+              when :q4_0 then 2
+              when :q4_1 then 3
+              end
+
+      llama.quantize(input_file, output_file, itype)
     end
 
     # Takes in a TokenEmbedding, string-like or array-like +input+ and generates text.

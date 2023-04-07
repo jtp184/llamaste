@@ -32,7 +32,9 @@ params = {
   top_p: 0.95,
   temperature: 0.8, # temp
   repeat_penalty: 1.1,
-  batch_size: 8 # n_batch
+  batch_size: 8, # n_batch
+  memory_lock: false, # use_mlock
+  memory_f16: false
 }
 
 @model = Llamaste::Model.new(params)

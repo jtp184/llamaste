@@ -36,6 +36,8 @@ struct model_params {
     float    temp            = 0.80f;  // temperature
     float    repeat_penalty  = 1.10f;  // repeat_penalty
     int32_t  n_batch         = 8;      // batch_size
+    bool     use_mlock       = false;  // memory_lock
+    bool     memory_f16      = false;  // memory_f16
     char*    model_path;               // model
 };
 
@@ -215,6 +217,8 @@ static int hash_iter_callback(VALUE key, VALUE value, VALUE params_ptr) {
     else if (key_str == "temperature") { params->temp = (float) RFLOAT_VALUE(value); }
     else if (key_str == "repeat_penalty") { params->repeat_penalty = (float) RFLOAT_VALUE(value); }
     else if (key_str == "batch_size") { params->n_batch = NUM2INT(value); }
+    else if (key_str == "memory_lock") { params->use_mlock = RTEST(value); }
+    else if (key_str == "memory_f16") { params->memory_f16 = RTEST(value); }
 
     return ST_CONTINUE;
 }
@@ -223,6 +227,20 @@ void ruby_params_parse(VALUE ruby_hash, model_params &params) {
     rb_hash_foreach(ruby_hash, [](VALUE key, VALUE value, VALUE params_ptr) -> int {
         return hash_iter_callback(key, value, params_ptr);
     }, (VALUE)&params);
+}
+
+static void *process_tokens_async(void *data) {
+    process_token_data *pt_data = (process_token_data *)data;
+
+    pt_data->output_str = process_tokens(
+            pt_data->tokens,
+            pt_data->typedata,
+            pt_data->locked,
+            pt_data->block,
+            pt_data->break_on
+    );
+
+    return NULL;
 }
 
 static VALUE m_initialize(VALUE self, VALUE params_hash) {
@@ -254,6 +272,21 @@ static VALUE m_allocate(VALUE klass) {
     return TypedData_Make_Struct(klass, lm_typedata, &lm_type, typedata);
 }
 
+static VALUE m_quantize(VALUE self, VALUE input_file, VALUE output_file, VALUE quant_type) {
+    char* input_fp = StringValueCStr(input_file);
+    char* output_fp = StringValueCStr(output_file);
+    int itype = NUM2INT(quant_type);
+
+    {
+        struct ggml_init_params params = { 0, NULL, false };
+        struct ggml_context * ctx = ggml_init(params);
+        ggml_free(ctx);
+    }
+
+    if(llama_model_quantize(input_fp, output_fp, itype)) { return Qnil; }
+    else { return output_file; }
+}
+
 static VALUE m_load_model(VALUE self) {
     lm_typedata *typedata;
     TypedData_Get_Struct(self, lm_typedata, &lm_type, typedata);
@@ -263,7 +296,8 @@ static VALUE m_load_model(VALUE self) {
     lparams.n_ctx      = typedata->params->n_ctx;
     lparams.n_parts    = typedata->params->n_parts;
     lparams.seed       = typedata->params->seed;
-    lparams.f16_kv     = false;
+    lparams.f16_kv     = typedata->params->memory_f16;
+    lparams.use_mlock  = typedata->params->use_mlock;
     lparams.logits_all = false;
 
     typedata->ctx = llama_init_from_file(
@@ -272,20 +306,6 @@ static VALUE m_load_model(VALUE self) {
     );
 
     return self;
-}
-
-static void *process_tokens_async(void *data) {
-    process_token_data *pt_data = (process_token_data *)data;
-
-    pt_data->output_str = process_tokens(
-            pt_data->tokens,
-            pt_data->typedata,
-            pt_data->locked,
-            pt_data->block,
-            pt_data->break_on
-    );
-
-    return NULL;
 }
 
 static VALUE m_tokenize(VALUE self, VALUE input_text) {
@@ -381,5 +401,6 @@ extern "C" void Init_ruby_llama() {
     rb_define_method(cLlama, "process_text", (VALUE(*)(ANYARGS))m_process_text, 2);
     rb_define_method(cLlama, "process_tokens", (VALUE(*)(ANYARGS))m_process_tokens, 2);
     rb_define_method(cLlama, "tokenize_text", (VALUE(*)(ANYARGS))m_tokenize, 1);
+    rb_define_method(cLlama, "quantize", (VALUE(*)(ANYARGS))m_quantize, 3);
     rb_define_method(cLlama, "close", (VALUE(*)(ANYARGS))m_close, 0);
 }

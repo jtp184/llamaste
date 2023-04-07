@@ -31,7 +31,7 @@ README.md
 </div>
 <div class='last-update'>
 Last Update:
-<span class='datetime'>2023-04-05 00:04:34 -0700</span>
+<span class='datetime'>2023-04-06 21:37:58 -0700</span>
 </div>
 </div>
 <div id='content'>
@@ -68,7 +68,9 @@ Last Update:
   <span class="ruby-value">top_p:</span> <span class="ruby-value">0.95</span>,
   <span class="ruby-value">temperature:</span> <span class="ruby-value">0.8</span>, <span class="ruby-comment"># temp</span>
   <span class="ruby-value">repeat_penalty:</span> <span class="ruby-value">1.1</span>,
-  <span class="ruby-value">batch_size:</span> <span class="ruby-value">8</span> <span class="ruby-comment"># n_batch</span>
+  <span class="ruby-value">batch_size:</span> <span class="ruby-value">8</span>, <span class="ruby-comment"># n_batch</span>
+  <span class="ruby-value">memory_lock:</span> <span class="ruby-keyword">false</span>, <span class="ruby-comment"># use_mlock</span>
+  <span class="ruby-value">memory_f16:</span> <span class="ruby-keyword">false</span>
 }
 
 <span class="ruby-ivar">@model</span> = <span class="ruby-constant">Llamaste</span><span class="ruby-operator">::</span><span class="ruby-constant">Model</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">params</span>)
