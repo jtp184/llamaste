@@ -158,6 +158,23 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
 
             embd.push_back(id);
             --remaining_tokens;
+
+            std::string token = llama_token_to_str(ctx, id);
+            output_buffer << token;
+
+            if(callback != Qnil) {
+                VALUE rb_str = rb_str_new_cstr(token.c_str());
+
+                if(locked) { rb_thread_call_with_gvl(resync_execute_block, (void *)&rb_str); }
+                else { rb_yield(rb_str); }
+            }
+
+            for(std::string & brk : break_on) {
+                auto finder = token.find(brk);
+                if(!(finder == std::string::npos)) { break_early = true; }
+            }
+            
+            if(break_early) { break; }
         } else {
             while ((int) embd_inp.size() > input_consumed) {
                 embd.push_back(embd_inp[input_consumed]);
@@ -168,29 +185,6 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
 
                 if ((int) embd.size() >= params->n_batch) { break; }
             }
-        }
-
-        for (auto id : embd) {
-            std::string token = llama_token_to_str(ctx, id);
-
-            if(callback != Qnil) {
-                VALUE rb_str = rb_str_new_cstr(token.c_str());
-
-                if(locked) { rb_thread_call_with_gvl(resync_execute_block, (void *)&rb_str); }
-                else { rb_yield(rb_str); }
-            }
-
-            output_buffer << token;
-            last_output += token;
-        }
-
-        for(std::string & brk : break_on) {
-            auto finder = last_output.find(brk);
-
-            if(finder == std::string::npos) { last_output = ""; }
-            else { break_early = true; }
-            
-            if(break_early) { break; }
         }
 
         if(break_early) { break; }

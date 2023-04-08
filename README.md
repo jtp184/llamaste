@@ -61,9 +61,11 @@ token = @model.tokenize(text_input)
 #    [" night", 4646]]
 # >
 
-# Generate based on token or text, providing a block will yield a string for each generated token
+# Generate based on token or text, returns a string.
+# Providing a block will yield a string for each generated token
+
 @model.call(token) { |tkn| print tkn }
-# => "It was a dark and stormy night, and I was on a plane headed for somewhere, but I didn’t know where."
+# => ", and I was on a plane headed for somewhere, but I didn’t know where."
 ```
 
 ## Contributing

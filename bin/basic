@@ -9,24 +9,27 @@ start_time = Time.now
 
 File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
 
-input = <<~DOC
-  Transcript of a chat with a food critic
+input = <<~DOC.chomp
+  This is a transcript of a never ending conversation between the USER and the helpful AI assistant TONY. TONY is a very helpful AI and will help the user with anything they need, and offer solutions when they have problems.
 
-  > What is the best pizza topping?
+  USER: Hello!
+  TONY: Hi! I am TONY, it's great to meet you sir!
+  USER: Can you tell me what the capitol of France is, please?
+  TONY: Of course, the capitol of France is Paris.
+  USER: What kind of vehicle should I use to travel over water?
+  TONY:
 DOC
 
 params = {
-  model: '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin',
-  parts: 1,
+  model: '/.code/C/llama/llama-cpp/models/65B/ggml-model-q4_0.bin',
   tokens: 16,
-  batch_size: 64,
-  top_k: 400,
-  temperature: 0.2,
-  repeat_penalty: 1.0
+  batch_size: 32,
+  # top_k: 400,
+  temperature: 0.2
 }
 
 # input = 'Two yellow caterpillars ran backwards'
-# params = { model: '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0.bin', tokens: 16 }
+# params[:model] = '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin'
 
 @model = Llamaste::Model.new(params)
 
@@ -37,13 +40,14 @@ puts "Load model (#{Time.now - input_time})"
 puts @model.inspect
 puts
 @tokenize = @model.tokenize(input)
-puts "Tokenize #{@tokenize.inspect}"
+puts "Tokenize Prompt (#{@tokenize.to_a.count} tokens)"
 
 input_time = Time.now
 puts 'Processing Input'
 # @result = @model.call(@tokenize)
 puts
-@result = @model.call(@tokenize) { |output| print output }
+print input.chomp("\n")
+@result = @model.call(@tokenize, break_on: ["\n"]) { |output| print output }
 puts
 
 puts "Input Processed (#{(Time.now - input_time) / 60.0} min)"
