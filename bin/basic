@@ -28,8 +28,8 @@ params = {
   temperature: 0.2
 }
 
-# input = 'Two yellow caterpillars ran backwards'
-# params[:model] = '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin'
+input = 'Two yellow caterpillars ran backwards'
+params[:model] = '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin'
 
 @model = Llamaste::Model.new(params)
 

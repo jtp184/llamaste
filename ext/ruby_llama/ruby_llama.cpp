@@ -125,6 +125,7 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
     std::fill(last_n_tokens.begin(), last_n_tokens.end(), 0);
 
     int input_consumed = 0;
+    int tokens_generated = 0;
     int remaining_tokens = params->n_predict;
 
     while (remaining_tokens > 0) {
@@ -158,6 +159,7 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
 
             embd.push_back(id);
             --remaining_tokens;
+            tokens_generated++;
 
             std::string token = llama_token_to_str(ctx, id);
             output_buffer << token;
@@ -169,9 +171,12 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
                 else { rb_yield(rb_str); }
             }
 
-            for(std::string & brk : break_on) {
-                auto finder = token.find(brk);
-                if(!(finder == std::string::npos)) { break_early = true; }
+            if (id == llama_token_eos() && tokens_generated > 1) { break_early = true; }
+            else {
+              for(std::string & brk : break_on) {
+                  auto finder = token.find(brk);
+                  if(!(finder == std::string::npos)) { break_early = true; }
+              }
             }
             
             if(break_early) { break; }
