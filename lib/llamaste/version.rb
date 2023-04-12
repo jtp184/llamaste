@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 module Llamaste
-  VERSION = '0.1.4' # :nodoc:
+  VERSION = '0.1.5' # :nodoc:
 end

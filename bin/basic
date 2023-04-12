@@ -9,7 +9,7 @@ start_time = Time.now
 
 File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
 
-input = <<~DOC.chomp
+long_input = <<~DOC.chomp
   This is a transcript of a never ending conversation between the USER and the helpful AI assistant TONY. TONY is a very helpful AI and will help the user with anything they need, and offer solutions when they have problems.
 
   USER: Hello!
@@ -28,7 +28,7 @@ params = {
   temperature: 0.2
 }
 
-input = 'Two yellow caterpillars ran backwards'
+input = ENV['LONG_INPUT'] ? long_input : 'Two yellow caterpillars ran backwards'
 params[:model] = '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin'
 
 @model = Llamaste::Model.new(params)

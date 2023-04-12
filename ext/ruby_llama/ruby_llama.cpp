@@ -274,7 +274,7 @@ static VALUE m_allocate(VALUE klass) {
 static VALUE m_quantize(VALUE self, VALUE input_file, VALUE output_file, VALUE quant_type) {
     char* input_fp = StringValueCStr(input_file);
     char* output_fp = StringValueCStr(output_file);
-    int itype = NUM2INT(quant_type);
+    llama_ftype itype = (llama_ftype) NUM2INT(quant_type);
 
     {
         struct ggml_init_params params = { 0, NULL, false };
