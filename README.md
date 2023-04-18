@@ -34,7 +34,10 @@ params = {
   repeat_penalty: 1.1,
   batch_size: 8, # n_batch
   memory_lock: false, # use_mlock
-  memory_f16: false
+  memory_f16: false,
+  use_mmap: true,
+  lora_base: nil,
+  lora_adapter: nil
 }
 
 @model = Llamaste::Model.new(params)
@@ -48,7 +51,7 @@ text_input = 'It was a dark and stormy night'
 
 token = @model.tokenize(text_input)
 # => 
-# <Llamaste::TokenEmbedding:0x00007f564a6a9b48                                  
+# <Llamaste::TokenGroup:0x00007f564a6a9b48                                  
 #  @string="It was a dark and stormy night",                                     
 #  @tokens=                                                                      
 #   [["It", 3112],                                                               

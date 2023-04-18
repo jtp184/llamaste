@@ -33,7 +33,10 @@ module Llamaste
         repeat_penalty: 1.1,
         batch_size: 8,
         memory_lock: false,
-        memory_f16: false
+        memory_f16: false,
+        use_mmap: true,
+        lora_base: nil,
+        lora_adapter: nil
       }
     end
 
@@ -52,9 +55,9 @@ module Llamaste
       model
     end
 
-    # Return a TokenEmbedding for +input+ string
+    # Return a TokenGroup for +input+ string
     def tokenize(input)
-      TokenEmbedding.new(input, llama.tokenize_text(input))
+      TokenGroup.new(input, llama.tokenize_text(input))
     end
 
     # Runs quantization on the +input_file+ defaulting to the model, emitting it to
@@ -69,12 +72,12 @@ module Llamaste
       llama.quantize(input_file, output_file, itype)
     end
 
-    # Takes in a TokenEmbedding, string-like or array-like +input+ and generates text.
+    # Takes in a TokenGroup, string-like or array-like +input+ and generates text.
     # Stops early if it encounters one of the strings in an array passed to +break_on+
     # Returns the output, and yields it piece by piece
     def call(input, break_on: nil, &blk)
       @output = case input
-                when TokenEmbedding then handle_ary_input(input, break_on, &blk)
+                when TokenGroup then handle_ary_input(input, break_on, &blk)
                 when ->(i) { i.respond_to?(:to_str) } then handle_str_input(input, break_on, &blk)
                 when ->(i) { i.respond_to?(:to_ary) } then handle_ary_input(input, break_on, &blk)
                 end

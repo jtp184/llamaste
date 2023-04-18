@@ -38,6 +38,9 @@ struct model_params {
     int32_t  n_batch         = 8;      // batch_size
     bool     use_mlock       = false;  // memory_lock
     bool     memory_f16      = false;  // memory_f16
+    bool     use_mmap        = true;
+    char*    lora_base       = "";
+    char*    lora_adapter    = "";
     char*    model_path;               // model
 };
 
@@ -218,6 +221,8 @@ static int hash_iter_callback(VALUE key, VALUE value, VALUE params_ptr) {
     else if (key_str == "batch_size") { params->n_batch = NUM2INT(value); }
     else if (key_str == "memory_lock") { params->use_mlock = RTEST(value); }
     else if (key_str == "memory_f16") { params->memory_f16 = RTEST(value); }
+    else if (key_str == "lora_base") { params->lora_base = (value == Qnil) ? params->lora_base : StringValueCStr(value); }
+    else if (key_str == "lora_adapter") { params->lora_adapter = (value == Qnil) ? params->lora_adapter : StringValueCStr(value); }
 
     return ST_CONTINUE;
 }
@@ -303,6 +308,17 @@ static VALUE m_load_model(VALUE self) {
             typedata->params->model_path,
             lparams
     );
+
+    if (!strlen(typedata->params->lora_adapter) == 0) {
+      char * l_base = (strlen(typedata->params->lora_base) == 0) ? NULL : typedata->params->lora_base;
+
+      llama_apply_lora_from_file(
+        typedata->ctx,
+        typedata->params->lora_adapter,
+        typedata->params->lora_base,
+        typedata->params->n_threads
+      );
+    }
 
     return self;
 }

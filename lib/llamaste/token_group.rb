@@ -2,7 +2,7 @@
 
 module Llamaste
   # Hold the original string and its represnentative tokens
-  class TokenEmbedding
+  class TokenGroup
     extend Forwardable
 
     # Original string input

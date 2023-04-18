@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Llamaste::TokenEmbedding do
+RSpec.describe Llamaste::TokenGroup do
   let(:string) { 'Some Text' }
   let(:tokens) { Array.new(3) { ['', rand(10_000)] } }
 

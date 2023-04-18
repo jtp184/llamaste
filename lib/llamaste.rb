@@ -4,7 +4,7 @@ require 'forwardable'
 require_relative 'llamaste/version'
 require_relative 'ruby_llama/ruby_llama'
 require_relative 'llamaste/model'
-require_relative 'llamaste/token_embedding'
+require_relative 'llamaste/token_group'
 
 # Llamaste: the Simply Translated Extension for LLaMa
 module Llamaste

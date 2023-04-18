@@ -204,6 +204,7 @@ enum ggml_type {
     GGML_TYPE_F16  = 1,
     GGML_TYPE_Q4_0 = 2,
     GGML_TYPE_Q4_1 = 3,
+    GGML_TYPE_Q8_0 = 4,
     GGML_TYPE_I8,
     GGML_TYPE_I16,
     GGML_TYPE_I32,
@@ -252,6 +253,9 @@ enum ggml_op {
 
     GGML_OP_FLASH_ATTN,
     GGML_OP_FLASH_FF,
+
+    GGML_OP_MAP_UNARY,
+    GGML_OP_MAP_BINARY,
 
     GGML_OP_COUNT,
 };
@@ -351,6 +355,8 @@ int    ggml_blck_size (enum ggml_type type);
 size_t ggml_type_size (enum ggml_type type); // size in bytes for all elements in a block
 float  ggml_type_sizef(enum ggml_type type); // ggml_type_size()/ggml_blck_size() as float
 
+const char * ggml_type_name(enum ggml_type type);
+
 size_t ggml_element_size(const struct ggml_tensor * tensor);
 
 struct ggml_context * ggml_init(struct ggml_init_params params);
@@ -420,6 +426,12 @@ struct ggml_tensor * ggml_dup(
         struct ggml_tensor  * a);
 
 struct ggml_tensor * ggml_add(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * a,
+        struct ggml_tensor  * b);
+
+
+struct ggml_tensor * ggml_add_inplace(
         struct ggml_context * ctx,
         struct ggml_tensor  * a,
         struct ggml_tensor  * b);
@@ -652,6 +664,21 @@ struct ggml_tensor * ggml_flash_ff(
         struct ggml_tensor  * c0,
         struct ggml_tensor  * c1);
 
+// Mapping operations
+typedef void (*ggml_unary_op_f32_t)(const int, float *, const float *);
+typedef void (*ggml_binary_op_f32_t)(const int, float *, const float *, const float *);
+
+struct ggml_tensor * ggml_map_unary_f32(
+        struct ggml_context        * ctx,
+        struct ggml_tensor         * a,
+        const  ggml_unary_op_f32_t fun);
+
+struct ggml_tensor * ggml_map_binary_f32(
+        struct ggml_context         * ctx,
+        struct ggml_tensor          * a,
+        struct ggml_tensor          * b,
+        const  ggml_binary_op_f32_t fun);
+
 //
 // automatic differentiation
 //
@@ -787,6 +814,8 @@ size_t ggml_quantize_q4_1(const float * src, void * dst, int n, int k, int64_t *
 int ggml_cpu_has_avx(void);
 int ggml_cpu_has_avx2(void);
 int ggml_cpu_has_avx512(void);
+int ggml_cpu_has_avx512_vbmi(void);
+int ggml_cpu_has_avx512_vnni(void);
 int ggml_cpu_has_fma(void);
 int ggml_cpu_has_neon(void);
 int ggml_cpu_has_arm_fma(void);
@@ -816,6 +845,7 @@ typedef struct {
     dequantize_row_q_t dequantize_row_q;
     quantize_row_q_t   quantize_row_q;
     quantize_row_q_t   quantize_row_q_reference;
+    quantize_row_q_t   quantize_row_q_dot;
     vec_dot_q_t        vec_dot_q;
 } quantize_fns_t;
 

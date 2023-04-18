@@ -61,8 +61,8 @@ RSpec.describe Llamaste::Model do
   end
 
   describe '#tokenize' do
-    it 'returns a TokenEmbedding' do
-      expect(service.tokenize('Some Text')).to be_a(Llamaste::TokenEmbedding)
+    it 'returns a TokenGroup' do
+      expect(service.tokenize('Some Text')).to be_a(Llamaste::TokenGroup)
     end
   end
 
@@ -93,8 +93,8 @@ RSpec.describe Llamaste::Model do
       end
     end
 
-    context 'when given a TokenEmbedding' do
-      let(:input) { Llamaste::TokenEmbedding.new('It was a dark and stormy night', Array.new(7, [])) }
+    context 'when given a TokenGroup' do
+      let(:input) { Llamaste::TokenGroup.new('It was a dark and stormy night', Array.new(7, [])) }
 
       it 'calls process_tokens' do
         expect(llama).to receive(:process_tokens)
