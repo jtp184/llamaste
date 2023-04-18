@@ -22,6 +22,8 @@ Gem::Specification.new do |spec|
     end
   end
 
+  spec.add_dependency 'matrix', '0.4.2'
+
   spec.bindir = 'exe'
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.extensions = ['ext/ruby_llama/extconf.rb']

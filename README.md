@@ -35,6 +35,7 @@ params = {
   batch_size: 8, # n_batch
   memory_lock: false, # use_mlock
   memory_f16: false,
+  embedding: false,
   use_mmap: true,
   lora_base: nil,
   lora_adapter: nil
@@ -80,7 +81,8 @@ Bug reports, feature interest, and pull requests are welcome on GitHub at https:
 - Remain up to date with `llama.cpp`
 - Increase feature offering, configurability
 - Increase quality of extension C++
-- Simple ChatGPT clone running on local via rails
+- ~~Simple ChatGPT clone running on local via rails~~
+  - [llamachat](https://github.com/jtp184/llamachat)
 
 ## References and Acknowledgements
 

@@ -39,6 +39,7 @@ struct model_params {
     bool     use_mlock       = false;  // memory_lock
     bool     memory_f16      = false;  // memory_f16
     bool     use_mmap        = true;
+    bool     embedding       = false;
     char*    lora_base       = "";
     char*    lora_adapter    = "";
     char*    model_path;               // model
@@ -71,6 +72,14 @@ static std::vector<llama_token> llama_tokenize(struct llama_context * ctx, const
     res.resize(n);
 
     return res;
+}
+
+static VALUE embeds_to_rb_array(const float* embeds, int embd_size) {
+    VALUE ruby_array = rb_ary_new2(embd_size);
+
+    for(int i = 0; i < embd_size; ++i) { rb_ary_push(ruby_array, DBL2NUM(embeds[i])); }
+
+    return ruby_array;
 }
 
 static VALUE tokens_to_rb_array(struct llama_context * ctx, const std::vector<llama_token>& tokens) {
@@ -176,12 +185,12 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
 
             if (id == llama_token_eos() && tokens_generated > 1) { break_early = true; }
             else {
-              for(std::string & brk : break_on) {
-                  auto finder = token.find(brk);
-                  if(!(finder == std::string::npos)) { break_early = true; }
-              }
+                for(std::string & brk : break_on) {
+                    auto finder = token.find(brk);
+                    if(!(finder == std::string::npos)) { break_early = true; }
+                }
             }
-            
+
             if(break_early) { break; }
         } else {
             while ((int) embd_inp.size() > input_consumed) {
@@ -221,6 +230,7 @@ static int hash_iter_callback(VALUE key, VALUE value, VALUE params_ptr) {
     else if (key_str == "batch_size") { params->n_batch = NUM2INT(value); }
     else if (key_str == "memory_lock") { params->use_mlock = RTEST(value); }
     else if (key_str == "memory_f16") { params->memory_f16 = RTEST(value); }
+    else if (key_str == "embedding") { params->embedding = RTEST(value); }
     else if (key_str == "lora_base") { params->lora_base = (value == Qnil) ? params->lora_base : StringValueCStr(value); }
     else if (key_str == "lora_adapter") { params->lora_adapter = (value == Qnil) ? params->lora_adapter : StringValueCStr(value); }
 
@@ -229,8 +239,8 @@ static int hash_iter_callback(VALUE key, VALUE value, VALUE params_ptr) {
 
 void ruby_params_parse(VALUE ruby_hash, model_params &params) {
     rb_hash_foreach(ruby_hash, [](VALUE key, VALUE value, VALUE params_ptr) -> int {
-        return hash_iter_callback(key, value, params_ptr);
-    }, (VALUE)&params);
+            return hash_iter_callback(key, value, params_ptr);
+            }, (VALUE)&params);
 }
 
 static void *process_tokens_async(void *data) {
@@ -242,7 +252,7 @@ static void *process_tokens_async(void *data) {
             pt_data->locked,
             pt_data->block,
             pt_data->break_on
-    );
+            );
 
     return NULL;
 }
@@ -302,6 +312,9 @@ static VALUE m_load_model(VALUE self) {
     lparams.seed       = typedata->params->seed;
     lparams.f16_kv     = typedata->params->memory_f16;
     lparams.use_mlock  = typedata->params->use_mlock;
+    lparams.use_mlock  = typedata->params->use_mlock;
+    lparams.use_mmap   = typedata->params->use_mmap;
+    lparams.embedding  = typedata->params->embedding;
     lparams.logits_all = false;
 
     typedata->ctx = llama_init_from_file(
@@ -310,17 +323,38 @@ static VALUE m_load_model(VALUE self) {
     );
 
     if (!strlen(typedata->params->lora_adapter) == 0) {
-      char * l_base = (strlen(typedata->params->lora_base) == 0) ? NULL : typedata->params->lora_base;
+        char * l_base = (strlen(typedata->params->lora_base) == 0) ? NULL : typedata->params->lora_base;
 
-      llama_apply_lora_from_file(
-        typedata->ctx,
-        typedata->params->lora_adapter,
-        typedata->params->lora_base,
-        typedata->params->n_threads
-      );
+        llama_apply_lora_from_file(
+                typedata->ctx,
+                typedata->params->lora_adapter,
+                typedata->params->lora_base,
+                typedata->params->n_threads
+                );
     }
 
     return self;
+}
+
+static VALUE m_embedding(VALUE self, VALUE input_text) {
+    Check_Type(input_text, T_STRING);
+
+    lm_typedata *typedata;
+    TypedData_Get_Struct(self, lm_typedata, &lm_type, typedata);
+    auto tokens_embd = ::llama_tokenize(typedata->ctx, StringValueCStr(input_text), true);
+
+    llama_eval(
+        typedata->ctx,
+        tokens_embd.data(),
+        tokens_embd.size(),
+        0,
+        typedata->params->n_threads
+    );
+
+    const int n_embd = llama_n_embd(typedata->ctx);
+    const float* embeddings = llama_get_embeddings(typedata->ctx);
+
+    return embeds_to_rb_array(embeddings, n_embd);
 }
 
 static VALUE m_tokenize(VALUE self, VALUE input_text) {
@@ -363,7 +397,7 @@ static VALUE m_process_tokens(VALUE self, VALUE input_tokens, VALUE break_on_str
             (void *)&pt_data,
             RUBY_UBF_IO,
             0
-    );
+            );
 
     return rb_str_new_cstr(pt_data.output_str.c_str());
 }
@@ -402,7 +436,7 @@ static VALUE m_process_text(VALUE self, VALUE input_text, VALUE break_on_str) {
             (void *)&pt_data,
             RUBY_UBF_IO,
             0
-    );
+            );
 
     return rb_str_new_cstr(pt_data.output_str.c_str());
 }
@@ -416,6 +450,7 @@ extern "C" void Init_ruby_llama() {
     rb_define_method(cLlama, "process_text", (VALUE(*)(ANYARGS))m_process_text, 2);
     rb_define_method(cLlama, "process_tokens", (VALUE(*)(ANYARGS))m_process_tokens, 2);
     rb_define_method(cLlama, "tokenize_text", (VALUE(*)(ANYARGS))m_tokenize, 1);
+    rb_define_method(cLlama, "embed_text", (VALUE(*)(ANYARGS))m_embedding, 1);
     rb_define_method(cLlama, "quantize", (VALUE(*)(ANYARGS))m_quantize, 3);
     rb_define_method(cLlama, "close", (VALUE(*)(ANYARGS))m_close, 0);
 }

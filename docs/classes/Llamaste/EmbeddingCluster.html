@@ -1,0 +1,301 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang='en'>
+<head>
+<title>Llamaste::EmbeddingCluster</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'>
+<link href='../../css/style.css' media='screen' rel='stylesheet' type='text/css'>
+<script type='text/javascript'>
+  function popupCode(url) {
+    window.open(url, "Code", "resizable=yes,scrollbars=yes,toolbar=no,status=no,height=150,width=400")
+  }
+  
+  function toggleCode(id) {
+    var code = document.getElementById(id)
+  
+    code.style.display = code.style.display != 'block' ? 'block' : 'none'
+    return true
+  }
+  
+  // Make codeblocks hidden by default
+  document.writeln('<' + 'style type="text/css">.method .source pre { display: none }<\/style>')
+</script>
+</head>
+<body class='page'>
+<div class='class' id='wrapper'>
+<div class='header'>
+<h1 class='name'><span class='type'>class</span>
+Llamaste::EmbeddingCluster
+</h1>
+<ol class='paths'>
+<li>
+<a href="../../files/lib/llamaste/embedding_cluster_rb.html">lib/llamaste/embedding_cluster.rb</a>
+</li>
+</ol>
+<div class='parent'>
+Superclass:
+<strong>Object</strong>
+</div>
+</div>
+<div id='content'>
+<div id='text'>
+<div id='description'>
+<p>K-means clustering for embeddings</p>
+</div>
+<div id='method-list'>
+<h2>Methods</h2>
+<h3>Public Class</h3>
+<ol>
+<li><a href="#method-c-call">call</a></li>
+<li><a href="#method-c-new">new</a></li>
+</ol>
+<h3>Public Instance</h3>
+<ol>
+<li><a href="#method-i-call">call</a></li>
+<li><a href="#attribute-i-clusters">clusters</a></li>
+<li><a href="#attribute-i-embeddings">embeddings</a></li>
+<li><a href="#attribute-i-k">k</a></li>
+</ol>
+<h3>Private Instance</h3>
+<ol>
+<li><a href="#method-i-assign_clusters">assign_clusters</a></li>
+<li><a href="#attribute-i-centroids">centroids</a></li>
+<li><a href="#method-i-distance">distance</a></li>
+<li><a href="#method-i-initial_centroids">initial_centroids</a></li>
+<li><a href="#method-i-update_centroids">update_centroids</a></li>
+</ol>
+</div>
+<div id='context'>
+</div>
+<div id='section'>
+<div id='attribute-list'>
+<h2 class='section-bar'>Attributes</h2>
+<div class='name-list'>
+<table>
+<tr class='top-aligned-row context-row'>
+<td class='context-item-name'>
+<a name='attribute-i-centroids'>centroids</a>
+</td>
+<td class='context-item-value'>[RW]</td>
+<td class='context-item-desc'>
+<p>The cluster anchor points</p>
+</td>
+</tr>
+<tr class='top-aligned-row context-row'>
+<td class='context-item-name'>
+<a name='attribute-i-clusters'>clusters</a>
+</td>
+<td class='context-item-value'>[R]</td>
+<td class='context-item-desc'>
+<p>The clustered data</p>
+</td>
+</tr>
+<tr class='top-aligned-row context-row'>
+<td class='context-item-name'>
+<a name='attribute-i-embeddings'>embeddings</a>
+</td>
+<td class='context-item-value'>[R]</td>
+<td class='context-item-desc'>
+<p>The set of TextEmbeddings</p>
+</td>
+</tr>
+<tr class='top-aligned-row context-row'>
+<td class='context-item-name'>
+<a name='attribute-i-k'>k</a>
+</td>
+<td class='context-item-value'>[R]</td>
+<td class='context-item-desc'>
+<p>The number of clusters</p>
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div id='methods'>
+<h2>Public Class methods</h2>
+<div class='method public-class' id='method-method-c-call'>
+<a name='method-c-call'></a>
+<div class='synopsis'>
+<span class='name'>call</span><span class='arguments'>(embeddings, k_clusters, limit = 100)</span>
+
+</div>
+<div class='description'>
+
+<p>Takes in the <code>embeddings</code>, number of <code>k_clusters</code> and optional <code>limit</code> and returns a calculated cluster</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-c-call-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-c-call-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 37</span>
+<span class="ruby-keyword">def</span> <span class="ruby-keyword">self</span>.<span class="ruby-identifier ruby-title">call</span>(<span class="ruby-identifier">embeddings</span>, <span class="ruby-identifier">k_clusters</span>, <span class="ruby-identifier">limit</span> = <span class="ruby-value">100</span>)
+  <span class="ruby-identifier">new</span>(<span class="ruby-identifier">embeddings</span>, <span class="ruby-identifier">k_clusters</span>).<span class="ruby-identifier">tap</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">c</span><span class="ruby-operator">|</span> <span class="ruby-identifier">c</span>.<span class="ruby-identifier">call</span>(<span class="ruby-identifier">limit</span>) }
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<div class='method public-class' id='method-method-c-new'>
+<a name='method-c-new'></a>
+<div class='synopsis'>
+<span class='name'>new</span><span class='arguments'>(embeddings, k_clusters)</span>
+
+</div>
+<div class='description'>
+
+<p>Takes in an array of TextEmbeddings and the number of <code>k_clusters</code> to group by</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-c-new-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-c-new-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 14</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">initialize</span>(<span class="ruby-identifier">embeddings</span>, <span class="ruby-identifier">k_clusters</span>)
+  <span class="ruby-ivar">@embeddings</span> = <span class="ruby-identifier">embeddings</span>
+  <span class="ruby-ivar">@k</span> = <span class="ruby-identifier">k_clusters</span>
+  <span class="ruby-ivar">@clusters</span> = <span class="ruby-constant">Array</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">k</span>) { [] }
+  <span class="ruby-ivar">@centroids</span> = <span class="ruby-identifier">initial_centroids</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<h2>Public Instance methods</h2>
+<div class='method public-instance' id='method-method-i-call'>
+<a name='method-i-call'></a>
+<div class='synopsis'>
+<span class='name'>call</span><span class='arguments'>(limit = 100)</span>
+
+</div>
+<div class='description'>
+
+<p>Uses the <code>limit</code> for max iterations, and clusters the data</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-call-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-call-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 22</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">call</span>(<span class="ruby-identifier">limit</span> = <span class="ruby-value">100</span>)
+  <span class="ruby-identifier">limit</span>.<span class="ruby-identifier">times</span> <span class="ruby-keyword">do</span>
+    <span class="ruby-identifier">assign_clusters</span>
+    <span class="ruby-identifier">new_centroids</span> = <span class="ruby-identifier">update_centroids</span>
+
+    <span class="ruby-keyword">break</span> <span class="ruby-keyword">if</span> <span class="ruby-identifier">new_centroids</span> <span class="ruby-operator">==</span> <span class="ruby-identifier">centroids</span>
+
+    <span class="ruby-keyword">self</span>.<span class="ruby-identifier">centroids</span> = <span class="ruby-identifier">new_centroids</span>
+    <span class="ruby-identifier">clusters</span>.<span class="ruby-identifier">map!</span>(<span class="ruby-operator">&amp;</span><span class="ruby-value">:clear</span>)
+  <span class="ruby-keyword">end</span>
+
+  <span class="ruby-identifier">clusters</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<h2>Private Instance methods</h2>
+<div class='method private-instance' id='method-method-i-assign_clusters'>
+<a name='method-i-assign_clusters'></a>
+<div class='synopsis'>
+<span class='name'>assign_clusters</span><span class='arguments'>()</span>
+
+</div>
+<div class='description'>
+
+<p>Fits the data using the minimal distance for each embedding</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-assign_clusters-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-assign_clusters-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 52</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">assign_clusters</span>
+  <span class="ruby-identifier">embeddings</span>.<span class="ruby-identifier">each</span> <span class="ruby-keyword">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">embedding</span><span class="ruby-operator">|</span>
+    <span class="ruby-identifier">closest</span> = <span class="ruby-identifier">centroids</span>.<span class="ruby-identifier">each_with_index</span>.<span class="ruby-identifier">min_by</span> <span class="ruby-keyword">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">centroid</span>, <span class="ruby-identifier">_</span><span class="ruby-operator">|</span>
+      <span class="ruby-identifier">distance</span>(<span class="ruby-identifier">embedding</span>.<span class="ruby-identifier">vector</span>, <span class="ruby-identifier">centroid</span>)
+    <span class="ruby-keyword">end</span>.<span class="ruby-identifier">last</span>
+
+    <span class="ruby-identifier">clusters</span>[<span class="ruby-identifier">closest</span>] <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-identifier">embedding</span>
+  <span class="ruby-keyword">end</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<div class='method private-instance' id='method-method-i-distance'>
+<a name='method-i-distance'></a>
+<div class='synopsis'>
+<span class='name'>distance</span><span class='arguments'>(left, right)</span>
+
+</div>
+<div class='description'>
+
+<p>Gets the norm distance between the <code>left</code> and <code>right</code> vectors</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-distance-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-distance-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 73</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">distance</span>(<span class="ruby-identifier">left</span>, <span class="ruby-identifier">right</span>)
+  (<span class="ruby-identifier">left</span> <span class="ruby-operator">-</span> <span class="ruby-identifier">right</span>).<span class="ruby-identifier">column_vectors</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">norm</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<div class='method private-instance' id='method-method-i-initial_centroids'>
+<a name='method-i-initial_centroids'></a>
+<div class='synopsis'>
+<span class='name'>initial_centroids</span><span class='arguments'>()</span>
+
+</div>
+<div class='description'>
+
+<p>Creates the randomized centroids</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-initial_centroids-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-initial_centroids-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 47</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">initial_centroids</span>
+  <span class="ruby-identifier">embeddings</span>.<span class="ruby-identifier">sample</span>(<span class="ruby-ivar">@k</span>).<span class="ruby-identifier">map</span>(<span class="ruby-operator">&amp;</span><span class="ruby-value">:vector</span>)
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<div class='method private-instance' id='method-method-i-update_centroids'>
+<a name='method-i-update_centroids'></a>
+<div class='synopsis'>
+<span class='name'>update_centroids</span><span class='arguments'>()</span>
+
+</div>
+<div class='description'>
+
+<p>Returns the summated value of each cluster</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-update_centroids-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-update_centroids-source'><span class="ruby-comment"># File lib/llamaste/embedding_cluster.rb, line 63</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">update_centroids</span>
+  <span class="ruby-identifier">clusters</span>.<span class="ruby-identifier">map</span> <span class="ruby-keyword">do</span> <span class="ruby-operator">|</span><span class="ruby-identifier">cluster</span><span class="ruby-operator">|</span>
+    <span class="ruby-keyword">next</span> <span class="ruby-constant">Matrix</span>[[<span class="ruby-value">0</span>] <span class="ruby-operator">*</span> <span class="ruby-identifier">embeddings</span>.<span class="ruby-identifier">first</span>.<span class="ruby-identifier">vector</span>.<span class="ruby-identifier">column_count</span>] <span class="ruby-keyword">if</span> <span class="ruby-identifier">cluster</span>.<span class="ruby-identifier">empty?</span>
+
+    <span class="ruby-identifier">sum</span> = <span class="ruby-identifier">cluster</span>.<span class="ruby-identifier">map</span>(<span class="ruby-operator">&amp;</span><span class="ruby-value">:vector</span>).<span class="ruby-identifier">reduce</span>(<span class="ruby-value">:+</span>)
+    <span class="ruby-identifier">sum</span> <span class="ruby-operator">/</span> <span class="ruby-identifier">cluster</span>.<span class="ruby-identifier">size</span>
+  <span class="ruby-keyword">end</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<div id='footer-push'></div>
+</div>
+<div id='footer'>
+<a href="https://github.com/jeremyevans/hanna-nouveau"><strong>Hanna Nouveau</strong> RDoc template</a>
+</div>
+</body>
+</html>

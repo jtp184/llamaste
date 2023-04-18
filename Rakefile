@@ -21,13 +21,13 @@ RDOC_EXCLUDE = %w[
   bin/console
   bin/basic
   coverage
-  ext
   Gemfile
   Gemfile.lock
   Rakefile
   tmp
   docs
   spec
+  ext/ruby_llama
 ].map { |r| "--exclude=#{r}" }.join(' ').freeze
 
 task :docs do

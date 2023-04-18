@@ -52,6 +52,7 @@ Superclass:
 <h3>Public Instance</h3>
 <ol>
 <li><a href="#method-i-call">call</a></li>
+<li><a href="#method-i-embed">embed</a></li>
 <li><a href="#method-i-load_model">load_model</a></li>
 <li><a href="#attribute-i-model">model</a></li>
 <li><a href="#attribute-i-output">output</a></li>
@@ -138,7 +139,8 @@ Superclass:
     <span class="ruby-value">memory_f16:</span> <span class="ruby-keyword">false</span>,
     <span class="ruby-value">use_mmap:</span> <span class="ruby-keyword">true</span>,
     <span class="ruby-value">lora_base:</span> <span class="ruby-keyword">nil</span>,
-    <span class="ruby-value">lora_adapter:</span> <span class="ruby-keyword">nil</span>
+    <span class="ruby-value">lora_adapter:</span> <span class="ruby-keyword">nil</span>,
+    <span class="ruby-value">embedding:</span> <span class="ruby-keyword">false</span>
   }
 <span class="ruby-keyword">end</span></pre>
 </div>
@@ -181,13 +183,38 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-call-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-call-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 78</span>
+<pre id='method-i-call-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 86</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">call</span>(<span class="ruby-identifier">input</span>, <span class="ruby-value">break_on:</span> <span class="ruby-keyword">nil</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
+  <span class="ruby-identifier">raise</span> <span class="ruby-constant">KeyError</span>, <span class="ruby-string">&#39;Need to unset embedding mode&#39;</span> <span class="ruby-keyword">if</span> <span class="ruby-identifier">params</span>[<span class="ruby-value">:embedding</span>]
+
   <span class="ruby-ivar">@output</span> = <span class="ruby-keyword">case</span> <span class="ruby-identifier">input</span>
             <span class="ruby-keyword">when</span> <span class="ruby-constant">TokenGroup</span> <span class="ruby-keyword">then</span> <span class="ruby-identifier">handle_ary_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
             <span class="ruby-keyword">when</span> <span class="ruby-operator">-&gt;</span>(<span class="ruby-identifier">i</span>) { <span class="ruby-identifier">i</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-value">:to_str</span>) } <span class="ruby-keyword">then</span> <span class="ruby-identifier">handle_str_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
             <span class="ruby-keyword">when</span> <span class="ruby-operator">-&gt;</span>(<span class="ruby-identifier">i</span>) { <span class="ruby-identifier">i</span>.<span class="ruby-identifier">respond_to?</span>(<span class="ruby-value">:to_ary</span>) } <span class="ruby-keyword">then</span> <span class="ruby-identifier">handle_ary_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
             <span class="ruby-keyword">end</span>
+<span class="ruby-keyword">end</span></pre>
+</div>
+</div>
+<div class='method public-instance' id='method-method-i-embed'>
+<a name='method-i-embed'></a>
+<div class='synopsis'>
+<span class='name'>embed</span><span class='arguments'>(input)</span>
+
+</div>
+<div class='description'>
+
+<p>Returns a <a href="TextEmbedding.html"><code>TextEmbedding</code></a> for <code>input</code> string. Raises a KeyError if not in embedding mode</p>
+
+</div>
+<div class='source'>
+<a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-embed-source&#39;); return false'>
+[show source]
+</a>
+<pre id='method-i-embed-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 65</span>
+<span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">embed</span>(<span class="ruby-identifier">input</span>)
+  <span class="ruby-identifier">raise</span> <span class="ruby-constant">KeyError</span>, <span class="ruby-string">&#39;Need to set embedding mode&#39;</span> <span class="ruby-keyword">unless</span> <span class="ruby-identifier">params</span>[<span class="ruby-value">:embedding</span>]
+
+  <span class="ruby-constant">TextEmbedding</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">llama</span>.<span class="ruby-identifier">embed_text</span>(<span class="ruby-identifier">input</span>))
 <span class="ruby-keyword">end</span></pre>
 </div>
 </div>
@@ -206,7 +233,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-load_model-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-load_model-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 44</span>
+<pre id='method-i-load_model-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 45</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">load_model</span>(<span class="ruby-identifier">model_path</span> = <span class="ruby-keyword">nil</span>)
   <span class="ruby-keyword">if</span> <span class="ruby-identifier">model_path</span>
     <span class="ruby-ivar">@model</span> = <span class="ruby-identifier">model_path</span>
@@ -237,7 +264,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-quantize-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-quantize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 65</span>
+<pre id='method-i-quantize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 73</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">quantize</span>(<span class="ruby-value">input_file:</span> <span class="ruby-identifier">model</span>, <span class="ruby-value">output_file:</span> <span class="ruby-keyword">nil</span>, <span class="ruby-value">quantize_type:</span> <span class="ruby-value">:q4_0</span>)
   <span class="ruby-identifier">output_file</span> <span class="ruby-operator">||=</span> <span class="ruby-identifier">input_file</span>.<span class="ruby-identifier">gsub</span>(<span class="ruby-regexp">/-[^-]+(?=\.bin$)/</span>, <span class="ruby-node">&quot;-#{quantize_type}&quot;</span>)
   <span class="ruby-identifier">itype</span> = <span class="ruby-keyword">case</span> <span class="ruby-identifier">quantize_type</span>
@@ -264,7 +291,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-tokenize-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-tokenize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 59</span>
+<pre id='method-i-tokenize-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 60</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">tokenize</span>(<span class="ruby-identifier">input</span>)
   <span class="ruby-constant">TokenGroup</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">llama</span>.<span class="ruby-identifier">tokenize_text</span>(<span class="ruby-identifier">input</span>))
 <span class="ruby-keyword">end</span></pre>
@@ -286,7 +313,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-handle_ary_input-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-handle_ary_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 94</span>
+<pre id='method-i-handle_ary_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 104</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">handle_ary_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
   <span class="ruby-identifier">bos</span> = <span class="ruby-identifier">input</span>.<span class="ruby-identifier">to_ary</span>.<span class="ruby-identifier">dup</span>.<span class="ruby-identifier">unshift</span>(<span class="ruby-value">1</span>)
 
@@ -309,7 +336,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-handle_str_input-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-handle_str_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 89</span>
+<pre id='method-i-handle_str_input-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 99</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">handle_str_input</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
   <span class="ruby-identifier">llama</span>.<span class="ruby-identifier">process_text</span>(<span class="ruby-identifier">input</span>, <span class="ruby-identifier">break_on</span>, <span class="ruby-operator">&amp;</span><span class="ruby-identifier">blk</span>)
 <span class="ruby-keyword">end</span></pre>
@@ -330,7 +357,7 @@ Superclass:
 <a class='source-toggle' href='#' onclick='toggleCode(&#39;method-i-llama-source&#39;); return false'>
 [show source]
 </a>
-<pre id='method-i-llama-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 101</span>
+<pre id='method-i-llama-source'><span class="ruby-comment"># File lib/llamaste/model.rb, line 111</span>
 <span class="ruby-keyword">def</span> <span class="ruby-identifier ruby-title">llama</span>
   <span class="ruby-ivar">@llama</span> <span class="ruby-operator">||=</span> <span class="ruby-constant">Llama</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">params</span>.<span class="ruby-identifier">merge</span>(<span class="ruby-value">model:</span>))
 <span class="ruby-keyword">end</span></pre>

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require 'etc'
+require 'digest/sha1'
 require 'irb'
 require 'llamaste'
 
@@ -10,7 +11,8 @@ start_time = Time.now
 File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
 
 long_input = <<~DOC.chomp
-  This is a transcript of a never ending conversation between the USER and the helpful AI assistant TONY. TONY is a very helpful AI and will help the user with anything they need, and offer solutions when they have problems.
+  This is a transcript of a never ending conversation between the USER and the helpful AI assistant TONY.
+  TONY is a very helpful AI and will help the user with anything they need, and offer solutions when they have problems.
 
   USER: Hello!
   TONY: Hi! I am TONY, it's great to meet you sir!
@@ -41,23 +43,27 @@ puts @model.inspect
 puts
 @tokenize = @model.tokenize(input)
 puts "Tokenize Prompt (#{@tokenize.to_a.count} tokens)"
-
 input_time = Time.now
-puts 'Processing Input'
-# @result = @model.call(@tokenize)
-puts
-print input.chomp("\n")
-@result = @model.call(@tokenize, break_on: ["\n"]) { |output| print output }
-puts
 
+if ENV['EMBED']
+  @model.params[:embedding] = true
+  @model.load_model
+  puts 'Embedding input'
+  @embedding = @model.embed(input)
+  puts "Embed size: #{@embedding.to_a.length}"
+  puts "Embed digest: #{@embedding.digest}"
+else
+  puts 'Processing Input'
+  puts
+  print input.chomp("\n")
+  @result = @model.call(@tokenize, break_on: ["\n"]) { |output| print output }
+end
+
+puts
 puts "Input Processed (#{(Time.now - input_time) / 60.0} min)"
 puts "Total: #{(Time.now - start_time) / 60.0} min"
 
 `rm tmp/basic.pid`
 
-puts "\a"
+puts "\a\n"
 # IRB.start
-puts
-# puts 'Output:'
-puts
-# puts @result

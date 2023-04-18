@@ -7,6 +7,7 @@ RSpec.describe Llamaste::Model do
     double(
       load_model: nil,
       tokenize_text: [['', 0]],
+      embed_text: [0.1],
       process_text: '',
       process_tokens: ''
     )
@@ -63,6 +64,14 @@ RSpec.describe Llamaste::Model do
   describe '#tokenize' do
     it 'returns a TokenGroup' do
       expect(service.tokenize('Some Text')).to be_a(Llamaste::TokenGroup)
+    end
+  end
+
+  describe '#embed' do
+    let(:service) { described_class.new(embedding: true) }
+
+    it 'returns a TextEmbedding' do
+      expect(service.embed('Some Text')).to be_a(Llamaste::TextEmbedding)
     end
   end
 

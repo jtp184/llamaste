@@ -36,7 +36,8 @@ module Llamaste
         memory_f16: false,
         use_mmap: true,
         lora_base: nil,
-        lora_adapter: nil
+        lora_adapter: nil,
+        embedding: false
       }
     end
 
@@ -60,6 +61,13 @@ module Llamaste
       TokenGroup.new(input, llama.tokenize_text(input))
     end
 
+    # Returns a TextEmbedding for +input+ string. Raises a KeyError if not in embedding mode
+    def embed(input)
+      raise KeyError, 'Need to set embedding mode' unless params[:embedding]
+
+      TextEmbedding.new(input, llama.embed_text(input))
+    end
+
     # Runs quantization on the +input_file+ defaulting to the model, emitting it to
     # +output_file+ using the +quantize_type+
     def quantize(input_file: model, output_file: nil, quantize_type: :q4_0)
@@ -76,6 +84,8 @@ module Llamaste
     # Stops early if it encounters one of the strings in an array passed to +break_on+
     # Returns the output, and yields it piece by piece
     def call(input, break_on: nil, &blk)
+      raise KeyError, 'Need to unset embedding mode' if params[:embedding]
+
       @output = case input
                 when TokenGroup then handle_ary_input(input, break_on, &blk)
                 when ->(i) { i.respond_to?(:to_str) } then handle_str_input(input, break_on, &blk)

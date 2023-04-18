@@ -1,7 +1,8 @@
 PATH
   remote: .
   specs:
-    llamaste (0.1.7)
+    llamaste (0.1.8)
+      matrix (= 0.4.2)
 
 GEM
   remote: https://rubygems.org/
@@ -12,6 +13,7 @@ GEM
     hanna-nouveau (1.4.0)
       rdoc (>= 4)
     json (2.6.3)
+    matrix (0.4.2)
     parallel (1.22.1)
     parser (3.2.1.1)
       ast (~> 2.4.1)
