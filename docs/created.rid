@@ -1,13 +1,13 @@
-Mon, 17 Apr 2023 23:14:16 -0700
+Thu, 20 Apr 2023 19:55:28 -0700
 README.md	Mon, 17 Apr 2023 23:14:09 -0700
 dream-llamas.jpg	Tue, 04 Apr 2023 13:17:19 -0700
 lib/llamaste/embedding_cluster.rb	Mon, 17 Apr 2023 22:43:14 -0700
 lib/llamaste/model.rb	Mon, 17 Apr 2023 22:43:53 -0700
 lib/llamaste/text_embedding.rb	Mon, 17 Apr 2023 22:34:48 -0700
 lib/llamaste/token_group.rb	Mon, 17 Apr 2023 20:12:37 -0700
-lib/llamaste/version.rb	Mon, 17 Apr 2023 22:44:13 -0700
+lib/llamaste/version.rb	Thu, 20 Apr 2023 19:55:27 -0700
 lib/llamaste.rb	Mon, 17 Apr 2023 20:57:31 -0700
-lib/ruby_llama/ruby_llama.so	Mon, 17 Apr 2023 22:44:14 -0700
+lib/ruby_llama/ruby_llama.so	Thu, 20 Apr 2023 19:51:36 -0700
 pkg/llamaste-0.1.0.gem	Sun, 02 Apr 2023 22:42:54 -0700
 pkg/llamaste-0.1.1.gem	Fri, 07 Apr 2023 14:45:25 -0700
 pkg/llamaste-0.1.2.gem	Sun, 09 Apr 2023 21:05:16 -0700
@@ -15,3 +15,4 @@ pkg/llamaste-0.1.4.gem	Tue, 11 Apr 2023 23:09:57 -0700
 pkg/llamaste-0.1.5.gem	Thu, 13 Apr 2023 18:29:36 -0700
 pkg/llamaste-0.1.6.gem	Mon, 17 Apr 2023 19:15:31 -0700
 pkg/llamaste-0.1.7.gem	Mon, 17 Apr 2023 22:36:48 -0700
+pkg/llamaste-0.1.8.gem	Thu, 20 Apr 2023 19:51:37 -0700

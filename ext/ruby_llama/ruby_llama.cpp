@@ -291,13 +291,16 @@ static VALUE m_quantize(VALUE self, VALUE input_file, VALUE output_file, VALUE q
     char* output_fp = StringValueCStr(output_file);
     llama_ftype itype = (llama_ftype) NUM2INT(quant_type);
 
+    lm_typedata *typedata;
+    TypedData_Get_Struct(self, lm_typedata, &lm_type, typedata);
+
     {
         struct ggml_init_params params = { 0, NULL, false };
         struct ggml_context * ctx = ggml_init(params);
         ggml_free(ctx);
     }
 
-    if(llama_model_quantize(input_fp, output_fp, itype)) { return Qnil; }
+    if(llama_model_quantize(input_fp, output_fp, itype, typedata->params->n_threads)) { return Qnil; }
     else { return output_file; }
 }
 
