@@ -15,7 +15,7 @@ or clone and install globally using `rake compile install`
 
 ## Usage
 
-### Quickstart
+### Model
 
 ```ruby
 # Configure model params like filepath, tokens to generate, context size, etc
@@ -42,14 +42,20 @@ params = {
 }
 
 @model = Llamaste::Model.new(params)
+```
+
+### Model Loading
+```ruby
 
 # Load model into memory
 @model.load_model
+# Optionally choose a different model
+@model.load_model('./models/7B/model.bin')
+```
 
+### Tokenizing
+```ruby
 text_input = 'It was a dark and stormy night'
-
-# Tokenize text
-
 token = @model.tokenize(text_input)
 # => 
 # <Llamaste::TokenGroup:0x00007f564a6a9b48                                  
@@ -65,15 +71,57 @@ token = @model.tokenize(text_input)
 #    [" night", 4646]]
 # >
 
-# Generate based on token or text, returns a string.
+```
+
+### Text Generation
+
+```ruby
+# Generate based on tokens or text, returns a string.
 # Providing a block will yield a string for each generated token
 
 @model.call(token) { |tkn| print tkn }
 # => ", and I was on a plane headed for somewhere, but I didn’t know where."
+
+# Set strings to break early on
+@model.call('When it is raining I need to bring my', break_on: ["\n"])
+# => " umbrella."
+```
+
+### Caching Model State
+
+Evaluate prompt and then save context out to a binary string
+
+```ruby
+# Save to string
+File.open('cache.bin', 'w+b') { |f| f << @model.cache_prompt('Something wicked this way') }
+# Resume evaluating prompt from binary string
+@model.resume_prompt('Something wicked this way', File.binread('cache.bin'))
+```
+
+### Embedding
+
+Return an embedding for an input prompt
+
+```ruby
+# Need to set embedding mode and reload context to embed tokens
+@model.params[:embedding] = true
+@model.load_model
+
+# Create embedding
+@model.embed('Pineapple on pizza is') # => TextEmbedding
+
+# K-cluster embeddings, supply embeddings array and k to cluster, and optional max_iterations for clustering
+e = EmbeddingCluster.call(
+  ['Oxygen is a', 'Nitrogen is a', 'Iron is a', 'Copper is a'].map { |t| @model.embed(t) },
+  2,
+  500
+)
+
+e.clusters.map { |c| c.map(&:to_str) }
+# => [["Oxygen is a", "Iron is a", "Copper is a"], ["Nitrogen is a"]]
 ```
 
 ## Contributing
-
 Bug reports, feature interest, and pull requests are welcome on GitHub at https://github.com/jtp184/llamaste.
 
 ### Project Goals

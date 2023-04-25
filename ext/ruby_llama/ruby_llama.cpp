@@ -55,6 +55,7 @@ struct process_token_data {
     std::vector<std::string> break_on;
     lm_typedata *typedata;
     bool locked;
+    bool ingest;
     VALUE block;
     std::string output_str;
 };
@@ -108,13 +109,66 @@ static std::vector<llama_token> rb_array_to_vector(VALUE ruby_array) {
     return tokens;
 }
 
+static std::vector<std::string> rb_array_of_break_strings(VALUE break_on_str) {
+    std::vector<std::string> cpp_strings;
+
+    if(break_on_str != Qnil) {
+        for(int i = 0; i < RARRAY_LEN(break_on_str); i++) {
+            VALUE ruby_str = rb_ary_entry(break_on_str, i);
+            char* c_str = StringValueCStr(ruby_str);
+            cpp_strings.push_back(c_str);
+        }
+    }
+
+    return cpp_strings;
+}
+
 static void *resync_execute_block(void *data) {
     VALUE *str = (VALUE *)data;
     rb_yield(*str);
 }
 
+std::vector<llama_token> consume_input(std::vector<llama_token>& embd_inp, int& input_consumed, model_params* params) {
+    std::vector<llama_token> embd;
 
-static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata* typedata, bool locked, VALUE callback, std::vector<std::string> break_on) {
+    while(embd_inp.size() > input_consumed) {
+        embd.push_back(embd_inp[input_consumed]);
+
+        ++input_consumed;
+
+        if(embd.size() >= params->n_batch) { break; }
+    }
+
+    return embd;
+}
+
+llama_token generate_token(llama_context* ctx, std::vector<llama_token>& last_n_tokens, int n_ctx, model_params* params) {
+    return llama_sample_top_p_top_k(
+        ctx,
+        last_n_tokens.data() + n_ctx - params->repeat_last_n,
+        params->repeat_last_n,
+        params->top_k,
+        params->top_p,
+        params->temp,
+        params->repeat_penalty
+    );
+}
+
+bool check_break_conditions(const std::string& token, std::vector<std::string>& break_on, int tokens_generated, llama_token id) {
+    if(id == llama_token_eos() && tokens_generated > 1) {
+        return true;
+    }
+
+    for (std::string& brk : break_on) {
+        if(token.find(brk) != std::string::npos) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata* typedata, bool locked, bool ingest, VALUE callback, std::vector<std::string> break_on) {
     std::ostringstream output_buffer;
 
     llama_context *ctx = typedata->ctx;
@@ -122,25 +176,24 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
 
     if(params->n_threads == 0){ return ""; }
 
-    int n_past = 0;
-
     const int n_ctx = llama_n_ctx(ctx);
-
     params->n_predict = std::min(params->n_predict, n_ctx - (int) embd_inp.size());
+    int remaining_tokens = params->n_predict;
 
     std::vector<llama_token> embd;
-    std::string last_output;
     bool break_early = false;
 
     int last_n_size = params->repeat_last_n;
     std::vector<llama_token> last_n_tokens(last_n_size);
-    std::fill(last_n_tokens.begin(), last_n_tokens.end(), 0);
 
-    int input_consumed = 0;
+    if(ingest) { std::fill(last_n_tokens.begin(), last_n_tokens.end(), 0); }
+    else { last_n_tokens = embd_inp; }
+
     int tokens_generated = 0;
-    int remaining_tokens = params->n_predict;
+    int n_past = (ingest) ? 0 : embd_inp.size();
+    int input_consumed = (ingest) ? 0 : embd_inp.size();
 
-    while (remaining_tokens > 0) {
+    while (remaining_tokens > tokens_generated) {
         if (embd.size() > 0) {
             if (llama_eval(ctx, embd.data(), embd.size(), n_past, params->n_threads)) {
                 break;
@@ -150,27 +203,14 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
         n_past += embd.size();
         embd.clear();
 
-        if ((int) embd_inp.size() <= input_consumed) {
-            const float top_k          = params->top_k;
-            const float top_p          = params->top_p;
-            const float temp           = params->temp;
-            const float repeat_penalty = params->repeat_penalty;
+        if(embd_inp.size() > input_consumed) { embd = consume_input(embd_inp, input_consumed, params); }
+        else {
+            llama_token id = generate_token(ctx, last_n_tokens, n_ctx, params);
 
-            llama_token id = 0;
-
-            {
-                id = llama_sample_top_p_top_k(ctx,
-                        last_n_tokens.data() + n_ctx - params->repeat_last_n,
-                        params->repeat_last_n, top_k, top_p, temp, repeat_penalty);
-
-
-
-                last_n_tokens.erase(last_n_tokens.begin());
-                last_n_tokens.push_back(id);
-            }
+            last_n_tokens.erase(last_n_tokens.begin());
+            last_n_tokens.push_back(id);
 
             embd.push_back(id);
-            --remaining_tokens;
             tokens_generated++;
 
             std::string token = llama_token_to_str(ctx, id);
@@ -183,28 +223,8 @@ static std::string process_tokens(std::vector<llama_token> embd_inp, lm_typedata
                 else { rb_yield(rb_str); }
             }
 
-            if (id == llama_token_eos() && tokens_generated > 1) { break_early = true; }
-            else {
-                for(std::string & brk : break_on) {
-                    auto finder = token.find(brk);
-                    if(!(finder == std::string::npos)) { break_early = true; }
-                }
-            }
-
-            if(break_early) { break; }
-        } else {
-            while ((int) embd_inp.size() > input_consumed) {
-                embd.push_back(embd_inp[input_consumed]);
-                last_n_tokens.erase(last_n_tokens.begin());
-                last_n_tokens.push_back(embd_inp[input_consumed]);
-
-                ++input_consumed;
-
-                if ((int) embd.size() >= params->n_batch) { break; }
-            }
+            if(check_break_conditions(token, break_on, tokens_generated, id)) { break; }
         }
-
-        if(break_early) { break; }
     }
 
     std::string output_string = output_buffer.str();
@@ -250,6 +270,7 @@ static void *process_tokens_async(void *data) {
             pt_data->tokens,
             pt_data->typedata,
             pt_data->locked,
+            pt_data->ingest,
             pt_data->block,
             pt_data->break_on
             );
@@ -333,7 +354,7 @@ static VALUE m_load_model(VALUE self) {
                 typedata->params->lora_adapter,
                 typedata->params->lora_base,
                 typedata->params->n_threads
-                );
+        );
     }
 
     return self;
@@ -371,75 +392,76 @@ static VALUE m_tokenize(VALUE self, VALUE input_text) {
     return tokens_to_rb_array(typedata->ctx, tokens_embd);
 }
 
-static VALUE m_process_tokens(VALUE self, VALUE input_tokens, VALUE break_on_str) {
+static VALUE m_cache_prompt(VALUE self, VALUE input_prompt) {
     lm_typedata *typedata;
     TypedData_Get_Struct(self, lm_typedata, &lm_type, typedata);
 
-    VALUE block = Qnil;
-    if(rb_block_given_p()){ block = rb_block_proc(); }
+    auto tokens = rb_array_to_vector(input_prompt);
 
-    std::vector<std::string> cpp_strings;
+    llama_eval(
+        typedata->ctx,
+        tokens.data(),
+        tokens.size(),
+        0,
+        typedata->params->n_threads
+    );
 
-    if(break_on_str != Qnil) {
-        for(int i = 0; i < RARRAY_LEN(break_on_str); i++) {
-            VALUE ruby_str = rb_ary_entry(break_on_str, i);
-            char* c_str = StringValueCStr(ruby_str);
-            cpp_strings.push_back(c_str);
-        }
-    }
+    size_t state_size = llama_get_state_size(typedata->ctx);
+    std::vector<uint8_t> state_data(state_size);
+
+    size_t bytes_copied = llama_copy_state_data(typedata->ctx, state_data.data());
+
+    return rb_str_new(reinterpret_cast<const char*>(state_data.data()), state_size);
+}
+
+static VALUE m_resume_prompt(VALUE self, VALUE input_prompt, VALUE rb_state_data, VALUE break_on_str) {
+    Check_Type(rb_state_data, T_STRING);
+
+    lm_typedata *typedata;
+    TypedData_Get_Struct(self, lm_typedata, &lm_type, typedata);
+
+    long state_data_length = RSTRING_LEN(rb_state_data);
+    uint8_t *state_data = new uint8_t[state_data_length];
+    memcpy(state_data, RSTRING_PTR(rb_state_data), state_data_length);
+
+    size_t bytes_read = llama_set_state_data(typedata->ctx, state_data);
 
     process_token_data pt_data;
-    pt_data.tokens = rb_array_to_vector(input_tokens);
-    pt_data.break_on = cpp_strings;
+    pt_data.tokens = rb_array_to_vector(input_prompt);
+    pt_data.break_on = rb_array_of_break_strings(break_on_str);
     pt_data.typedata = typedata;
     pt_data.locked = true;
-    pt_data.block = block;
+    pt_data.ingest = false;
+    pt_data.block = rb_block_given_p() ? rb_block_proc() : Qnil;
 
     rb_thread_call_without_gvl(
-            process_tokens_async,
-            (void *)&pt_data,
-            RUBY_UBF_IO,
-            0
-            );
+        process_tokens_async,
+        (void *)&pt_data,
+        RUBY_UBF_IO,
+        0
+    );
 
     return rb_str_new_cstr(pt_data.output_str.c_str());
 }
 
-static VALUE m_process_text(VALUE self, VALUE input_text, VALUE break_on_str) {
-    Check_Type(input_text, T_STRING);
-
+static VALUE m_process_tokens(VALUE self, VALUE input_tokens, VALUE break_on_str) {
     lm_typedata *typedata;
     TypedData_Get_Struct(self, lm_typedata, &lm_type, typedata);
 
-    VALUE block = Qnil;
-    if(rb_block_given_p()){ block = rb_block_proc(); }
-
-    std::vector<std::string> cpp_strings;
-
-    if(break_on_str != Qnil) {
-        for(int i = 0; i < RARRAY_LEN(break_on_str); i++) {
-            VALUE ruby_str = rb_ary_entry(break_on_str, i);
-            char* c_str = StringValueCStr(ruby_str);
-            cpp_strings.push_back(c_str);
-        }
-    }
-
-    char* input_str = StringValueCStr(input_text);
-    auto tokens_embd = ::llama_tokenize(typedata->ctx, input_str, true);
-
     process_token_data pt_data;
-    pt_data.tokens = tokens_embd;
-    pt_data.break_on = cpp_strings;
+    pt_data.tokens = rb_array_to_vector(input_tokens);
+    pt_data.break_on = rb_array_of_break_strings(break_on_str);
     pt_data.typedata = typedata;
     pt_data.locked = true;
-    pt_data.block = block;
+    pt_data.ingest = true;
+    pt_data.block = rb_block_given_p() ? rb_block_proc() : Qnil;
 
     rb_thread_call_without_gvl(
             process_tokens_async,
             (void *)&pt_data,
             RUBY_UBF_IO,
             0
-            );
+    );
 
     return rb_str_new_cstr(pt_data.output_str.c_str());
 }
@@ -450,8 +472,9 @@ extern "C" void Init_ruby_llama() {
     rb_define_alloc_func(cLlama, m_allocate);
     rb_define_method(cLlama, "initialize", (VALUE(*)(ANYARGS))m_initialize, 1);
     rb_define_method(cLlama, "load_model", (VALUE(*)(ANYARGS))m_load_model, 0);
-    rb_define_method(cLlama, "process_text", (VALUE(*)(ANYARGS))m_process_text, 2);
     rb_define_method(cLlama, "process_tokens", (VALUE(*)(ANYARGS))m_process_tokens, 2);
+    rb_define_method(cLlama, "cache_prompt", (VALUE(*)(ANYARGS))m_cache_prompt, 1);
+    rb_define_method(cLlama, "resume_prompt", (VALUE(*)(ANYARGS))m_resume_prompt, 3);
     rb_define_method(cLlama, "tokenize_text", (VALUE(*)(ANYARGS))m_tokenize, 1);
     rb_define_method(cLlama, "embed_text", (VALUE(*)(ANYARGS))m_embedding, 1);
     rb_define_method(cLlama, "quantize", (VALUE(*)(ANYARGS))m_quantize, 3);

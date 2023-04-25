@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    llamaste (0.1.9)
+    llamaste (0.2.0)
       matrix (= 0.4.2)
 
 GEM

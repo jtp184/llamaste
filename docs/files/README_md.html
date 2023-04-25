@@ -31,7 +31,7 @@ README.md
 </div>
 <div class='last-update'>
 Last Update:
-<span class='datetime'>2023-04-17 23:14:09 -0700</span>
+<span class='datetime'>2023-04-25 00:03:01 -0700</span>
 </div>
 </div>
 <div id='content'>
@@ -52,7 +52,7 @@ Last Update:
 
 <h2 id="label-Usage">Usage<span><a href="#label-Usage">&para;</a> <a href="#top">&uarr;</a></span></h2>
 
-<h3 id="label-Quickstart">Quickstart<span><a href="#label-Quickstart">&para;</a> <a href="#top">&uarr;</a></span></h3>
+<h3 id="label-Model">Model<span><a href="#label-Model">&para;</a> <a href="#top">&uarr;</a></span></h3>
 
 <pre class="ruby"><span class="ruby-comment"># Configure model params like filepath, tokens to generate, context size, etc</span>
 <span class="ruby-comment"># These are the defaults (apart from model)</span>
@@ -78,14 +78,20 @@ Last Update:
 }
 
 <span class="ruby-ivar">@model</span> = <span class="ruby-constant">Llamaste</span><span class="ruby-operator">::</span><span class="ruby-constant">Model</span>.<span class="ruby-identifier">new</span>(<span class="ruby-identifier">params</span>)
+</pre>
 
+<h3 id="label-Model+Loading">Model Loading<span><a href="#label-Model+Loading">&para;</a> <a href="#top">&uarr;</a></span></h3>
+
+<pre class="ruby">
 <span class="ruby-comment"># Load model into memory</span>
 <span class="ruby-ivar">@model</span>.<span class="ruby-identifier">load_model</span>
+<span class="ruby-comment"># Optionally choose a different model</span>
+<span class="ruby-ivar">@model</span>.<span class="ruby-identifier">load_model</span>(<span class="ruby-string">&#39;./models/7B/model.bin&#39;</span>)
+</pre>
 
-<span class="ruby-identifier">text_input</span> = <span class="ruby-string">&#39;It was a dark and stormy night&#39;</span>
+<h3 id="label-Tokenizing">Tokenizing<span><a href="#label-Tokenizing">&para;</a> <a href="#top">&uarr;</a></span></h3>
 
-<span class="ruby-comment"># Tokenize text</span>
-
+<pre class="ruby"><span class="ruby-identifier">text_input</span> = <span class="ruby-string">&#39;It was a dark and stormy night&#39;</span>
 <span class="ruby-identifier">token</span> = <span class="ruby-ivar">@model</span>.<span class="ruby-identifier">tokenize</span>(<span class="ruby-identifier">text_input</span>)
 <span class="ruby-comment"># =&gt;</span>
 <span class="ruby-comment"># &lt;Llamaste::TokenGroup:0x00007f564a6a9b48</span>
@@ -100,12 +106,51 @@ Last Update:
 <span class="ruby-comment">#    [&quot;y&quot;, 29891],</span>
 <span class="ruby-comment">#    [&quot; night&quot;, 4646]]</span>
 <span class="ruby-comment"># &gt;</span>
+</pre>
 
-<span class="ruby-comment"># Generate based on token or text, returns a string.</span>
+<h3 id="label-Text+Generation">Text Generation<span><a href="#label-Text+Generation">&para;</a> <a href="#top">&uarr;</a></span></h3>
+
+<pre class="ruby"><span class="ruby-comment"># Generate based on tokens or text, returns a string.</span>
 <span class="ruby-comment"># Providing a block will yield a string for each generated token</span>
 
 <span class="ruby-ivar">@model</span>.<span class="ruby-identifier">call</span>(<span class="ruby-identifier">token</span>) { <span class="ruby-operator">|</span><span class="ruby-identifier">tkn</span><span class="ruby-operator">|</span> <span class="ruby-identifier">print</span> <span class="ruby-identifier">tkn</span> }
 <span class="ruby-comment"># =&gt; &quot;, and I was on a plane headed for somewhere, but I didn’t know where.&quot;</span>
+
+<span class="ruby-comment"># Set strings to break early on</span>
+<span class="ruby-ivar">@model</span>.<span class="ruby-identifier">call</span>(<span class="ruby-string">&#39;When it is raining I need to bring my&#39;</span>, <span class="ruby-value">break_on:</span> [<span class="ruby-string">&quot;\n&quot;</span>])
+<span class="ruby-comment"># =&gt; &quot; umbrella.&quot;</span>
+</pre>
+
+<h3 id="label-Caching+Model+State">Caching Model State<span><a href="#label-Caching+Model+State">&para;</a> <a href="#top">&uarr;</a></span></h3>
+
+<p>Evaluate prompt and then save context out to a binary string</p>
+
+<pre class="ruby"><span class="ruby-comment"># Save to string</span>
+<span class="ruby-constant">File</span>.<span class="ruby-identifier">open</span>(<span class="ruby-string">&#39;cache.bin&#39;</span>, <span class="ruby-string">&#39;w+b&#39;</span>) { <span class="ruby-operator">|</span><span class="ruby-identifier">f</span><span class="ruby-operator">|</span> <span class="ruby-identifier">f</span> <span class="ruby-operator">&lt;&lt;</span> <span class="ruby-ivar">@model</span>.<span class="ruby-identifier">cache_prompt</span>(<span class="ruby-string">&#39;Something wicked this way&#39;</span>) }
+<span class="ruby-comment"># Resume evaluating prompt from binary string</span>
+<span class="ruby-ivar">@model</span>.<span class="ruby-identifier">resume_prompt</span>(<span class="ruby-string">&#39;Something wicked this way&#39;</span>, <span class="ruby-constant">File</span>.<span class="ruby-identifier">binread</span>(<span class="ruby-string">&#39;cache.bin&#39;</span>))
+</pre>
+
+<h3 id="label-Embedding">Embedding<span><a href="#label-Embedding">&para;</a> <a href="#top">&uarr;</a></span></h3>
+
+<p>Return an embedding for an input prompt</p>
+
+<pre class="ruby"><span class="ruby-comment"># Need to set embedding mode and reload context to embed tokens</span>
+<span class="ruby-ivar">@model</span>.<span class="ruby-identifier">params</span>[<span class="ruby-value">:embedding</span>] = <span class="ruby-keyword">true</span>
+<span class="ruby-ivar">@model</span>.<span class="ruby-identifier">load_model</span>
+
+<span class="ruby-comment"># Create embedding</span>
+<span class="ruby-ivar">@model</span>.<span class="ruby-identifier">embed</span>(<span class="ruby-string">&#39;Pineapple on pizza is&#39;</span>) <span class="ruby-comment"># =&gt; TextEmbedding</span>
+
+<span class="ruby-comment"># K-cluster embeddings, supply embeddings array and k to cluster, and optional max_iterations for clustering</span>
+<span class="ruby-identifier">e</span> = <span class="ruby-constant">EmbeddingCluster</span>.<span class="ruby-identifier">call</span>(
+  [<span class="ruby-string">&#39;Oxygen is a&#39;</span>, <span class="ruby-string">&#39;Nitrogen is a&#39;</span>, <span class="ruby-string">&#39;Iron is a&#39;</span>, <span class="ruby-string">&#39;Copper is a&#39;</span>].<span class="ruby-identifier">map</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">t</span><span class="ruby-operator">|</span> <span class="ruby-ivar">@model</span>.<span class="ruby-identifier">embed</span>(<span class="ruby-identifier">t</span>) },
+  <span class="ruby-value">2</span>,
+  <span class="ruby-value">500</span>
+)
+
+<span class="ruby-identifier">e</span>.<span class="ruby-identifier">clusters</span>.<span class="ruby-identifier">map</span> { <span class="ruby-operator">|</span><span class="ruby-identifier">c</span><span class="ruby-operator">|</span> <span class="ruby-identifier">c</span>.<span class="ruby-identifier">map</span>(<span class="ruby-operator">&amp;</span><span class="ruby-value">:to_str</span>) }
+<span class="ruby-comment"># =&gt; [[&quot;Oxygen is a&quot;, &quot;Iron is a&quot;, &quot;Copper is a&quot;], [&quot;Nitrogen is a&quot;]]</span>
 </pre>
 
 <h2 id="label-Contributing">Contributing<span><a href="#label-Contributing">&para;</a> <a href="#top">&uarr;</a></span></h2>

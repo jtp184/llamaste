@@ -96,8 +96,8 @@ RSpec.describe Llamaste::Model do
     context 'when given a string-like' do
       let(:input) { 'Some Text' }
 
-      it 'calls process_text' do
-        expect(llama).to receive(:process_text)
+      it 'calls tokenize on the input' do
+        expect(service).to receive(:tokenize).and_return(Array.new(5) { rand(500) })
         subject
       end
     end

@@ -52,6 +52,17 @@ if ENV['EMBED']
   @embedding = @model.embed(input)
   puts "Embed size: #{@embedding.to_a.length}"
   puts "Embed digest: #{@embedding.digest}"
+elsif ENV['CACHE']
+  puts 'Storing to cache'
+  File.open('./tmp/test_kv.bin', 'w+b') do |file|
+    file << @model.cache_prompt(input)
+  end
+  puts 'Saved to ./tmp/test_kv.bin'
+elsif ENV['RESTORE']
+  puts 'Resuming from cache'
+  puts
+  print input.chomp("\n")
+  puts @model.resume_prompt(input, File.binread(ENV['RESTORE'])) { |output| print output }
 else
   puts 'Processing Input'
   puts
@@ -60,10 +71,9 @@ else
 end
 
 puts
+puts "\a\n"
 puts "Input Processed (#{(Time.now - input_time) / 60.0} min)"
 puts "Total: #{(Time.now - start_time) / 60.0} min"
 
-`rm tmp/basic.pid`
-
-puts "\a\n"
 # IRB.start
+`rm tmp/basic.pid`

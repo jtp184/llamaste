@@ -68,14 +68,29 @@ module Llamaste
       TextEmbedding.new(input, llama.embed_text(input))
     end
 
+    # Returns a binary blob representing the model state after processing the +input_prompt+
+    def cache_prompt(input_prompt)
+      llama.cache_prompt(parse_input(input_prompt))
+    end
+
+    # Loads the +state_data+ binary blob as the model state, and resumes token processing for the +input_prompt+
+    # with the same +break_on+ options as #call
+    def resume_prompt(input_prompt, state_data, break_on: nil)
+      llama.resume_prompt(parse_input(input_prompt), state_data, break_on)
+    end
+
     # Runs quantization on the +input_file+ defaulting to the model, emitting it to
     # +output_file+ using the +quantize_type+
     def quantize(input_file: model, output_file: nil, quantize_type: :q4_0)
       output_file ||= input_file.gsub(/-[^-]+(?=\.bin$)/, "-#{quantize_type}")
-      itype = case quantize_type
-              when :q4_0 then 2
-              when :q4_1 then 3
-              end
+      itype = {
+        f16: 1,
+        q4_0: 2,
+        q4_1: 3,
+        q4_1a: 4,
+        q4_2: 5,
+        q4_3: 6
+      }[quantize_type]
 
       llama.quantize(input_file, output_file, itype)
     end
@@ -84,27 +99,20 @@ module Llamaste
     # Stops early if it encounters one of the strings in an array passed to +break_on+
     # Returns the output, and yields it piece by piece
     def call(input, break_on: nil, &blk)
-      raise KeyError, 'Need to unset embedding mode' if params[:embedding]
-
-      @output = case input
-                when TokenGroup then handle_ary_input(input, break_on, &blk)
-                when ->(i) { i.respond_to?(:to_str) } then handle_str_input(input, break_on, &blk)
-                when ->(i) { i.respond_to?(:to_ary) } then handle_ary_input(input, break_on, &blk)
-                end
+      @output = llama.process_tokens(parse_input(input), break_on, &blk)
     end
 
     private
 
-    # Takes in a string-like +input+, tokenizing it if we are caching tokens, and processing it as text if we are not
-    def handle_str_input(input, break_on, &blk)
-      llama.process_text(input, break_on, &blk)
-    end
+    # Takes in the +input_prompt+ and optionally prepends a +bos+ token
+    def parse_input(input_prompt, bos: true)
+      tkns = case input_prompt
+             when ->(i) { i.respond_to?(:to_ary) } then input_prompt
+             when ->(i) { i.respond_to?(:to_str) } then tokenize(input_prompt)
+             end.to_ary.dup
 
-    # Takes an arrayable +input+ and processes it as tokens, adding a BOS header to it
-    def handle_ary_input(input, break_on, &blk)
-      bos = input.to_ary.dup.unshift(1)
-
-      llama.process_tokens(bos, break_on, &blk)
+      tkns.unshift(1) if bos
+      tkns
     end
 
     # The wrapped C GPT transformer
