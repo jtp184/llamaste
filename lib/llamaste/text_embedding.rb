@@ -6,7 +6,7 @@ require 'digest'
 module Llamaste
   # Represents the Embedding vectors
   class TextEmbedding
-    extend Forwardable
+    include Enumerable
     include Comparable
 
     # Original string input
@@ -15,8 +15,6 @@ module Llamaste
     attr_reader :embeddings
     # Matrix of embeddings
     attr_reader :vector
-
-    def_delegators :to_a, :each, :count
 
     # Take in values for +string+ and +tokens+
     def initialize(string, embeds)
@@ -33,6 +31,11 @@ module Llamaste
     # Return copy of +string+
     def to_s
       string.dup
+    end
+
+    # Delegate to +to_a+
+    def each(...)
+      to_a.each(...)
     end
 
     # Compares +other+ to self using cosine similarity

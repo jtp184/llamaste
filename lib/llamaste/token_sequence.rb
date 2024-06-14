@@ -2,15 +2,13 @@
 
 module Llamaste
   # Hold the original string and its represnentative tokens
-  class TokenGroup
-    extend Forwardable
+  class TokenSequence
+    include Enumerable
 
     # Original string input
     attr_reader :string
     # Array of token ids
     attr_reader :tokens
-
-    def_delegators :to_a, :each, :count
 
     # Take in values for +string+ and +tokens+
     def initialize(string, tokens)
@@ -28,7 +26,10 @@ module Llamaste
       string.dup
     end
 
-    alias to_ary to_a
+    def each(...)
+      tokens.each(...)
+    end
+
     alias to_str to_s
   end
 end

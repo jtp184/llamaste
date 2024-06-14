@@ -6,74 +6,57 @@ require 'digest/sha1'
 require 'irb'
 require 'llamaste'
 
-start_time = Time.now
+TEXT_COLORIZE = {
+  red: ->(text) { "\e[31m#{text}\e[0m" },
+  green: ->(text) { "\e[32m#{text}\e[0m" }
+}.freeze
 
-File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
+begin
+  start_time = Time.now
 
-long_input = <<~DOC.chomp
-  This is a transcript of a never ending conversation between the USER and the helpful AI assistant TONY.
-  TONY is a very helpful AI and will help the user with anything they need, and offer solutions when they have problems.
+  File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
 
-  USER: Hello!
-  TONY: Hi! I am TONY, it's great to meet you sir!
-  USER: Can you tell me what the capitol of France is, please?
-  TONY: Of course, the capitol of France is Paris.
-  USER: What kind of vehicle should I use to travel over water?
-  TONY:
-DOC
+  params = { model_path: '/.code/C/llama/models/Llama-2-13B-GGUF/llama-2-13b.Q5_K_M.gguf', threads: Etc.nprocessors - 1 }
 
-params = {
-  model: '/.code/C/llama/llama-cpp/models/65B/ggml-model-q4_0.bin',
-  tokens: 16,
-  batch_size: 32,
-  # top_k: 400,
-  temperature: 0.2
-}
+  puts "Starting Backend..."
+  Llamaste::Model.start_backend
+  @model = Llamaste::Model.new(**params)
+  puts @model.inspect
+  puts "Loading Model..."
+  load_time = Time.now
+  loaded = @model.load
 
-input = ENV['LONG_INPUT'] ? long_input : 'Two yellow caterpillars ran backwards'
-params[:model] = '/.code/C/llama/llama-cpp/models/alpaca/30B/ggml-model-q4_0-ggjt.bin'
-
-@model = Llamaste::Model.new(params)
-
-input_time = Time.now
-
-@model.load_model
-puts "Load model (#{Time.now - input_time})"
-puts @model.inspect
-puts
-@tokenize = @model.tokenize(input)
-puts "Tokenize Prompt (#{@tokenize.to_a.count} tokens)"
-input_time = Time.now
-
-if ENV['EMBED']
-  @model.params[:embedding] = true
-  @model.load_model
-  puts 'Embedding input'
-  @embedding = @model.embed(input)
-  puts "Embed size: #{@embedding.to_a.length}"
-  puts "Embed digest: #{@embedding.digest}"
-elsif ENV['CACHE']
-  puts 'Storing to cache'
-  File.open('./tmp/test_kv.bin', 'w+b') do |file|
-    file << @model.cache_prompt(input)
+  if !loaded
+    puts "Model Failed to Load"
+    abort
   end
-  puts 'Saved to ./tmp/test_kv.bin'
-elsif ENV['RESTORE']
-  puts 'Resuming from cache'
+
+  load_finish = Time.now
+  puts "Model Loaded (#{(load_finish - load_time) / 60.0} min)"
+
+  input = 'Two yellow caterpillars ran backwards'
+  tkns = @model.tokenize(input)
+  puts "Tokens: #{tkns.count}"
+
+  inf = Llamaste::Inference.new(@model, input)
+
+  input_time = Time.now
+  puts "Generating..."
+  text = inf.generate(16)
+  input_finish = Time.now
+  puts "Input Processed (#{(input_finish - input_time) / 60.0} min)"
+
+  # IRB.start
+
   puts
-  print input.chomp("\n")
-  puts @model.resume_prompt(input, File.binread(ENV['RESTORE'])) { |output| print output }
-else
-  puts 'Processing Input'
+  print TEXT_COLORIZE[:red].call(input)
+  print TEXT_COLORIZE[:green].call(text.to_s)
   puts
-  print input.chomp("\n")
-  @result = @model.call(@tokenize, break_on: ["\n"]) { |output| print output }
+  puts "\a\n"
+  puts "Total: #{(Time.now - start_time) / 60.0} min"
+
+  `rm tmp/basic.pid`
+ensure
+  Llamaste::Model.stop_backend
 end
 
-puts
-puts "\a\n"
-puts "Input Processed (#{(Time.now - input_time) / 60.0} min)"
-puts "Total: #{(Time.now - start_time) / 60.0} min"
-
-# IRB.start
-`rm tmp/basic.pid`
