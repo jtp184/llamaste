@@ -16,11 +16,11 @@ begin
 
   File.open('tmp/basic.pid', 'w+') { |f| f << Process.pid }
 
-  params = { model_path: '/.code/C/llama/models/Llama-2-13B-GGUF/llama-2-13b.Q5_K_M.gguf', threads: Etc.nprocessors - 1 }
+  model_path = '/.code/C/llama/models/Llama-2-13B-GGUF/llama-2-13b.Q5_K_M.gguf'
 
   puts "Starting Backend..."
   Llamaste::Model.start_backend
-  @model = Llamaste::Model.new(**params)
+  @model = Llamaste::Model.new(model_path:)
   puts @model.inspect
   puts "Loading Model..."
   load_time = Time.now
@@ -35,14 +35,12 @@ begin
   puts "Model Loaded (#{(load_finish - load_time) / 60.0} min)"
 
   input = 'Two yellow caterpillars ran backwards'
-  tkns = @model.tokenize(input)
-  puts "Tokens: #{tkns.count}"
 
-  inf = Llamaste::Inference.new(@model, input)
+  inf = Llamaste::Inference.new(model: @model, prompt: input, threads: Etc.nprocessors - 1, tokens: 16)
 
   input_time = Time.now
   puts "Generating..."
-  text = inf.generate(16)
+  text = inf.generate
   input_finish = Time.now
   puts "Input Processed (#{(input_finish - input_time) / 60.0} min)"
 
